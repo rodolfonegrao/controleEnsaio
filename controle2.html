@@ -740,25 +740,21 @@
 
       const url = "https://script.google.com/macros/s/AKfycbwBzoo1fjE5Z1DtqJ9v4ubcjwiFCGaRWy5CCtq_VouL6zy-5CY4g4lzSLty7bhbpLBrLQ/exec"; // substitua pela sua
     
+      const payload = {
+        filename: `frequencia_musicos_${anoSelecionado}.json`,
+        content: JSON.stringify(blob)
+      };
+    
       fetch(url, {
         method: "POST",
-        body: JSON.stringify(blob),
         headers: {
           "Content-Type": "application/json"
-        }
+        },
+        body: JSON.stringify(payload)
       })
-      .then(res => res.json())
-      .then(resp => {
-        if (resp.success) {
-          alert("JSON salvo com sucesso no GitHub!");
-          console.log("Arquivo disponível em:", resp.link);
-        } else {
-          alert("Erro ao salvar no GitHub: " + resp.error);
-        }
-      })
-      .catch(err => {
-        alert("Erro ao conectar com backend: " + err.message);
-      });
+        .then(response => response.text())
+        .then(data => alert("✅ JSON salvo com sucesso!\n\n" + data))
+        .catch(error => alert("❌ Erro ao salvar JSON:\n\n" + error));
     
 
 /*
