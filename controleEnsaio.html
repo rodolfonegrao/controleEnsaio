@@ -2,8 +2,13 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>🎼 Controle de Frequência no Ensaio</title>
+  <title>🎻 Controle de Frequência nos Ensaios 🎺</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- autoTable plugin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -13,6 +18,11 @@
     }
 
     h1 {
+      text-align: center;
+      color: #2e3d59;
+    }
+
+    h2 {
       text-align: center;
       color: #2e3d59;
     }
@@ -127,7 +137,7 @@
 
     .modal {
       display: none;
-      position: fixed;
+      position: absolute;
       z-index: 10;
       padding-top: 60px;
       left: 0;
@@ -143,7 +153,7 @@
       margin: auto;
       padding: 20px 30px;
       border: 1px solid #888;
-      width: 300px;
+      width: 400px;
       border-radius: 10px;
     }
 
@@ -178,6 +188,40 @@
       background-color: #45a049;
     }
 
+    .tabelaVisitantes {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .tabelaVisitantes th, .tabelaVisitantes td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .grupo-contador {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .grupo-contador label {
+      width: 80px;
+    }
+
+    .grupo-contador button {
+      padding: 5px 10px;
+      font-size: 16px;
+    }
+
+    #subInstrumento, #sumInstrumento {
+      margin: 4px 4px;
+      padding: 5px 10px;
+      font-size: 16px;
+    }
+
+
     .close {
       float: right;
       font-size: 22px;
@@ -211,11 +255,24 @@
       display: none !important;
     }
 
+    .tabela-resumo {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    .tabela-resumo th, .tabela-resumo td {
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      text-align: left;
+    }
+
+
   </style>
 </head>
 <body>
 
-  <h1>🎻 Controle de Frequência nos Ensaios</h1>
+  <h1>Rudge Ramos</h1>
+  <h2>🎻 Controle de Frequência nos Ensaios 🎺</h2>
 
   <div id="mensagem" style="display:none; position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px 20px; border-radius: 5px; font-weight: bold;"></div>
 
@@ -225,19 +282,19 @@
     <select id="ano" class="oculto"></select>
     <button onclick="gerarTabela()" class="oculto">📅 Gerar Tabela</button>
 
-
+    <button onclick="limparLista()">🗑️ Limpar Lista</button>
     <button onclick="abrirModal('modalAdicionar')">➕ Adicionar Músico</button>
-    
     <button onclick="importarListaGoogleDrive()">📥 Importar Músicos</button>
 
+    <button onclick="abrirModal('modalVisitantes')" class="btn">🎺 Visitas | Irmandade | Hinos</button>
+
+    <button onclick="mostrarResumoCompleto()">🧾 Resumo do Ensaio</button>
     <button class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
     <button onclick="contarFrequenciaMesAtual()">📅 Total Mês Atual</button>
-    <button onclick="contarFrequenciaAnual()">📆 Total no Ano</button>
+    <button onclick="contarFrequenciaAnual()">📊 Total no Ano</button>
 
-    <button onclick="limparLista()">🗑️ Limpar Lista</button>
-
-    <button onclick="exportarExcel()">📤 Exportar Excel</button>
-    
+    <button onclick="exportarExcel()">📈 Excel</button>
+    <button onclick="exportarPDF()">📄 PDF</button>
     <button onclick="exportarJSON()">💾 Salvar</button>
 
     <button id="btnAlternarMeses" class="btn" onclick="alternarColunasMes()">👁️ Apenas mês atual</button>
@@ -264,6 +321,101 @@
     </div>
   </div>
 
+  <div id="modalVisitantes" class="modal controls">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModalVisita()">&times;</span>
+
+      <h3>Irmandade</h3>
+      <div class="grupo-contador">
+        <label>Irmãos:</label>
+        <button onclick="alterarContador('irmaos', -1)">−</button>
+        <span id="contador-irmaos">0</span>
+        <button onclick="alterarContador('irmaos', 1)">+</button>
+      </div>
+      <div class="grupo-contador">
+        <label>Irmãs:</label>
+        <button onclick="alterarContador('irmas', -1)">−</button>
+        <span id="contador-irmas">0</span>
+        <button onclick="alterarContador('irmas', 1)">+</button>
+      </div>
+
+      <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+      <h3>Músicos</h3>
+
+      <div style="margin-bottom: 10px;">
+        <label for="selectInstrumentoVisitante">Instrumento:</label>
+        <select id="selectInstrumentoVisitante">
+          <option value="">-- Selecione --</option>
+          <option>Violino</option><option>Viola</option><option>Cello</option>
+          <option>Flauta</option><option>Clarinete</option><option>Clarone Alto</option><option>Clarone Baixo</option>
+          <option>Oboé</option><option>Fagote</option><option>Saxofone Soprano</option>
+          <option>Saxofone Alto</option><option>Saxofone Tenor</option><option>Saxofone Baritono</option>
+          <option>Trompete</option><option>Trompa</option><option>Flugelhorn</option>
+          <option>Euphonium</option><option>Trombone</option><option>Tuba</option>
+          <option>Organistas</option>
+        </select>
+
+        <button onclick="adicionarVisitante()">Adicionar</button>
+      </div>
+
+      <table id="tabelaVisitantes" class="tabelaVisitantes">
+        <thead>
+          <tr>
+            <th>Instrumento</th>
+            <th>Quantidade</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+      <h3>Localidades</h3>
+      
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+        <input type="text" id="nomeLocalidade" placeholder="Localidade" style="flex: 1;">
+        <button onclick="adicionarLocalidade()">Adicionar</button>
+      </div>
+
+      <table id="tabelaLocalidade" class="tabelaVisitantes">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Visitantes serão inseridos aqui -->
+        </tbody>
+      </table>
+
+      <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+      <h3>Hinos Tocados</h3>
+      
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+        <input type="text" id="numeroHino" placeholder="Hino" style="flex: 1;">
+        <button onclick="adicionarHino()">Adicionar</button>
+      </div>
+
+      <table id="tabelaHino" class="tabelaVisitantes">
+        <thead>
+          <tr>
+            <th>Hino</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Visitantes serão inseridos aqui -->
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+
 
   <input type="file" id="file-input" accept=".json" style="display:none;" onchange="carregarJSON(event)">
 
@@ -286,6 +438,68 @@
       <h2>Resumo de Frequência</h2>
       <div id="resumo"></div>
       <button onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+
+  <div id="modalResumoCompleto" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModalResumo()">&times;</span>
+      <h3>Resumo Completo do Ensaio</h3>
+
+      <div style="overflow-x:auto">
+        <h4>Instrumentos</h4>
+        <table id="resumoInstrumentos" class="tabela-resumo">
+          <thead>
+            <tr><th>Instrumento</th><th>Local</th><th>Visitas</th></tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr><th>Total</th><th id="totalLocal">0</th><th id="totalVisitas">0</th></tr>
+          </tfoot>
+        </table>
+
+        <!--<hr>
+
+        <h4>Irmandade</h4>-->
+        <table class="tabela-resumo" style="display: none;">
+          <tbody>
+            <tr><td>Irmãs</td><td id="totalIrmas">0</td></tr>
+            <tr><td>Irmãos</td><td id="totalIrmaos">0</td></tr>
+            <tr><th>Total</th><th id="totalIrmandade">0</th></tr>
+          </tbody>
+        </table>
+
+        <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+        <h4>Contagem Geral</h4>
+        <table class="tabela-resumo">
+          <tbody>
+            <tr><td>Irmãs</td><td id="contagemIrmas">0</td></tr>
+            <tr><td>Irmãos</td><td id="contagemIrmaos">0</td></tr>
+            <tr><td>Músicos</td><td id="contagemMusicos">0</td></tr>
+            <tr><th>Total</th><th id="contagemTotalGeral">0</th></tr>
+          </tbody>
+        </table>
+
+        <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+        <h4>Hinos Tocados</h4>
+        <table class="tabela-resumo">
+          <tbody>
+            <tr><td>Total</td><td id="totalHinos">0</td></tr>
+          </tbody>
+        </table>
+        <span id="listaHinosSpan"></span>
+
+        <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+        <h4>Localidades Visitando</h4>
+        <ul id="listaLocalidades"></ul>
+      </div>
+      <div class="controls">
+        <button onclick="exportarModalResumoComoJSON()">💾 Salvar</button>
+        <button onclick="enviarModalResumoPorWhatsApp()">📱 Enviar por WhatsApp</button>
+      </div>
     </div>
   </div>
 
@@ -358,42 +572,6 @@
       document.querySelectorAll("#tabela tbody tr").forEach(row => row.remove());
       carregarDados();
     }
-/*
-    function criarLinha(nome, instrumento) {
-      const tbody = document.querySelector("#tabela tbody");
-      const familia = classificarFamilia(instrumento);
-      const linha = tbody.insertRow();
-      linha.dataset.nome = nome;
-      linha.dataset.instrumento = instrumento;
-      linha.dataset.familia = familia;
-      linha.className = familia.toLowerCase();
-
-      linha.insertCell().textContent = nome;
-      linha.insertCell().textContent = instrumento;
-      linha.insertCell().textContent = familia;
-
-      datasEnsaio.forEach(() => {
-        const cell = linha.insertCell();
-        const select = document.createElement("select");
-        ["", "P", "F", "J", "E"].forEach(op => {
-          const option = document.createElement("option");
-          option.value = op;
-          option.textContent = op;
-          select.appendChild(option);
-        });
-        cell.appendChild(select);
-      });
-
-      const cellRemover = linha.insertCell();
-      const btn = document.createElement("button");
-      btn.textContent = "Remover";
-      btn.className = "btn-remove";
-      btn.onclick = () => {
-        linha.remove();
-        salvarDados();
-      };
-      cellRemover.appendChild(btn);
-    }*/
 
     function criarLinha(nome, instrumento, frequencias = {}) {
       const tbody = document.getElementById("tabela").querySelector("tbody");
@@ -594,8 +772,7 @@
 
     function iniciarSalvamentoAutomatico() {
       setInterval(() => {
-        salvarDados();
-        //exportarJSON();
+        //salvarDados();
       }, 60000); // 30.000 ms = 30 segundos
     }
 
@@ -617,6 +794,9 @@
       const tbody = document.getElementById("tabela").querySelector("tbody");
       tbody.innerHTML = "";
     }
+
+
+    /* Inicio das Functions de Calculos */
 
     function contarFrequencia() {
       contarFrequenciaAnual();
@@ -792,9 +972,138 @@
       document.getElementById("modal").style.display = "block";
     }
 
+    function mostrarResumoCompleto() {
+      const mapaInstrumentos = {};
+      let totalIrmas = 0;
+      let totalIrmaos = 0;
+
+      // --- 1. CONTAR INSTRUMENTOS (LOCAL) ---
+      const linhas = document.querySelectorAll("#tabela tbody tr");
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth(); // 0 = Janeiro, 11 = Dezembro
+
+      linhas.forEach(linha => {
+        const instrumento = linha.getAttribute("data-instrumento");
+        const tipo = linha.getAttribute("data-tipo"); // 'irma' ou 'irmao'
+        if (tipo === "irma") totalIrmas++;
+        else if (tipo === "irmao") totalIrmaos++;
+
+        if (!instrumento) return;
+
+        const selects = linha.querySelectorAll("select");
+        if (selects.length === 0) return;
+
+        const selectMes = selects[mesAtual];
+        if (!selectMes || selectMes.value !== "P") return;
+
+        mapaInstrumentos[instrumento] = mapaInstrumentos[instrumento] || { local: 0, visitas: 0 };
+        mapaInstrumentos[instrumento].local += 1;
+      });
+
+
+      // --- 2. CONTAR INSTRUMENTOS (VISITANTES) ---
+      const visitantes = document.querySelectorAll("#tabelaVisitantes tbody tr");
+      visitantes.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 2) return;
+
+        const instrumento = cells[0].textContent.trim();
+        const qtd = parseInt(cells[1].textContent.trim() || "0", 10);
+
+        if (!instrumento) return;
+
+        mapaInstrumentos[instrumento] = mapaInstrumentos[instrumento] || { local: 0, visitas: 0 };
+        mapaInstrumentos[instrumento].visitas += qtd;
+      });
+      /*visitantes.forEach(row => {
+        const instrumento = row.getAttribute("data-instrumento");
+        const qtd = parseInt(row.getAttribute("data-quantidade") || "0");
+        if (!instrumento) return;
+        mapaInstrumentos[instrumento] = mapaInstrumentos[instrumento] || { local: 0, visitas: 0 };
+        mapaInstrumentos[instrumento].visitas += qtd;
+      });*/
+
+      // --- 3. PREENCHER TABELA DE INSTRUMENTOS ---
+      const tbody = document.querySelector("#resumoInstrumentos tbody");
+      tbody.innerHTML = "";
+      let totalLocal = 0;
+      let totalVisitas = 0;
+
+      for (const instrumento in mapaInstrumentos) {
+        const linha = document.createElement("tr");
+        const tdInst = document.createElement("td");
+        const tdLoc = document.createElement("td");
+        const tdVis = document.createElement("td");
+
+        tdInst.textContent = instrumento;
+        tdLoc.textContent = mapaInstrumentos[instrumento].local;
+        tdVis.textContent = mapaInstrumentos[instrumento].visitas;
+
+        linha.appendChild(tdInst);
+        linha.appendChild(tdLoc);
+        linha.appendChild(tdVis);
+        tbody.appendChild(linha);
+
+        totalLocal += mapaInstrumentos[instrumento].local;
+        totalVisitas += mapaInstrumentos[instrumento].visitas;
+      }
+
+      document.getElementById("totalLocal").textContent = totalLocal;
+      document.getElementById("totalVisitas").textContent = totalVisitas;
+
+      // --- 4. IRMANDADE ---
+      // --- CONTAR IRMANDADES (PRESENTES NO MÊS ATUAL) ---
+      totalIrmas = document.getElementById("contador-irmas").textContent;
+      totalIrmaos = document.getElementById("contador-irmaos").textContent;
+      document.getElementById("totalIrmas").textContent = totalIrmas;
+      document.getElementById("totalIrmaos").textContent = totalIrmaos;
+      document.getElementById("totalIrmandade").textContent = parseInt(totalIrmas) + parseInt(totalIrmaos);
+
+      // --- 5. CONTAGEM GERAL ---
+      const totalMusicos = parseInt(totalLocal) + parseInt(totalVisitas);
+      const totalGeral = parseInt(totalMusicos) + parseInt(totalIrmandade);
+      document.getElementById("contagemIrmas").textContent = totalIrmas;
+      document.getElementById("contagemIrmaos").textContent = totalIrmaos;
+      document.getElementById("contagemMusicos").textContent = totalMusicos;
+      document.getElementById("contagemTotalGeral").textContent = parseInt(totalIrmas) + parseInt(totalIrmaos) + parseInt(totalMusicos);
+
+      // --- 6. HINOS TOCADOS ---
+      const hinos = document.querySelectorAll("#tabelaHino tbody tr");
+      document.getElementById("totalHinos").textContent = hinos.length;
+      const listaHinos = Array.from(hinos)
+        .map(row => row.cells[0]?.textContent.trim()) // Ajuste o índice se necessário
+        .filter(hino => hino)
+        .join(" | ");
+
+      document.getElementById("listaHinosSpan").textContent = listaHinos;
+
+      // --- 7. LOCALIDADES VISITANDO ---
+      const localidades = new Set();
+      const localidadeItens = document.querySelectorAll("#tabelaLocalidade tbody tr td");
+      localidadeItens.forEach(td => {
+        const texto = td.textContent.trim();
+        if (texto && texto.trim() !== "🗑️") localidades.add(texto);
+      });
+
+      const ul = document.getElementById("listaLocalidades");
+      ul.innerHTML = "";
+      localidades.forEach(loc => {
+        const li = document.createElement("li");
+        li.textContent = loc;
+        ul.appendChild(li);
+      });
+
+      abrirModal("modalResumoCompleto");
+    }
+
     function fecharModal() {
       document.getElementById("modal").style.display = "none";
     }
+
+    function fecharModalResumo() {
+      document.getElementById("modalResumoCompleto").style.display = "none";
+    }
+    /* Final das Functions de Calculos */
 
     const anoSelect = document.getElementById("ano");
     for (let a = 2025; a <= 2035; a++) {
@@ -805,6 +1114,199 @@
     }
     anoSelect.value = new Date().getFullYear();
     gerarTabela();
+
+    /* Inicio Function de Export */
+    function exportarModalResumoComoJSON() {
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
+      const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
+
+      const nomeArquivo = `resumo_ensaio_${dataFormatada}.json`;
+
+      const data = {
+        instrumentos: [],
+        totalInstrumentos: {
+          local: parseInt(document.getElementById("totalLocal").textContent) || 0,
+          visitas: parseInt(document.getElementById("totalVisitas").textContent) || 0
+        },
+        contagemGeral: {
+          irmas: parseInt(document.getElementById("contagemIrmas").textContent) || 0,
+          irmaos: parseInt(document.getElementById("contagemIrmaos").textContent) || 0,
+          musicos: parseInt(document.getElementById("contagemMusicos").textContent) || 0,
+          total: parseInt(document.getElementById("contagemTotalGeral").textContent) || 0
+        },
+        hinosTocados: {
+          total: parseInt(document.getElementById("totalHinos").textContent) || 0,
+          lista: document.getElementById("listaHinosSpan").textContent.split("|").map(h => h.trim()).filter(h => h)
+        },
+        localidadesVisitando: []
+      };
+
+      // Instrumentos
+      const linhasInstrumentos = document.querySelectorAll("#resumoInstrumentos tbody tr");
+      linhasInstrumentos.forEach(row => {
+        const cols = row.querySelectorAll("td");
+        if (cols.length === 3) {
+          data.instrumentos.push({
+            instrumento: cols[0].textContent.trim(),
+            local: parseInt(cols[1].textContent.trim()) || 0,
+            visitas: parseInt(cols[2].textContent.trim()) || 0
+          });
+        }
+      });
+
+      // Localidades
+      const listaLocais = document.querySelectorAll("#listaLocalidades li");
+      listaLocais.forEach(item => {
+        const texto = item.textContent.trim();
+        if (texto && texto !== "🗑️") data.localidadesVisitando.push(texto);
+      });
+
+      // Download JSON
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nomeArquivo;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function enviarModalResumoPorWhatsApp() {
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
+      const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
+
+      let texto = `*Ensaio ${dataFormatada}*\n\n`;
+
+      // Instrumentos
+      texto += "*Instrumentos*\n";
+      const linhasInstrumentos = document.querySelectorAll("#resumoInstrumentos tbody tr");
+      linhasInstrumentos.forEach(row => {
+        const cols = row.querySelectorAll("td");
+        if (cols.length === 3) {
+          const instrumento = cols[0].textContent.trim();
+          const local = cols[1].textContent.trim();
+          const visitas = cols[2].textContent.trim();
+          texto += `${instrumento}: Local ${local} | Visitas ${visitas}\n`;
+        }
+      });
+
+      const totalLocal = document.getElementById("totalLocal").textContent.trim();
+      const totalVisitas = document.getElementById("totalVisitas").textContent.trim();
+      texto += `Total: Local ${totalLocal} | Visitas ${totalVisitas}\n\n`;
+
+      // Contagem Geral
+      texto += "*Contagem Geral*\n";
+      texto += `Irmãs: ${document.getElementById("contagemIrmas").textContent.trim()}\n`;
+      texto += `Irmãos: ${document.getElementById("contagemIrmaos").textContent.trim()}\n`;
+      texto += `Músicos: ${document.getElementById("contagemMusicos").textContent.trim()}\n`;
+      texto += `Total: ${document.getElementById("contagemTotalGeral").textContent.trim()}\n\n`;
+
+      // Hinos
+      texto += "*Hinos Tocados*\n";
+      texto += `Total: ${document.getElementById("totalHinos").textContent.trim()}\n`;
+
+      const listaHinos = document.getElementById("listaHinosSpan").textContent.trim();
+      if (listaHinos) {
+        texto += `Hinos: ${listaHinos.split("|").map(h => h.trim()).join(", ")}\n\n`;
+      }
+
+      // Localidades
+      texto += "*Localidades Visitando*\n";
+      const localidades = document.querySelectorAll("#listaLocalidades li");
+      localidades.forEach(li => {
+        const nome = li.textContent.trim();
+        if (nome && nome !== "🗑️") {
+          texto += `- ${nome}\n`;
+        }
+      });
+
+      // Codifica o texto e cria o link do WhatsApp
+      const textoCodificado = encodeURIComponent(texto);
+      const linkWhatsapp = `https://wa.me/?text=${textoCodificado}`;
+
+      // Abre o link em uma nova aba
+      window.open(linkWhatsapp, "_blank");
+    }
+
+    function exportarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const ano = parseInt(document.getElementById("ano").value);
+
+      doc.setFontSize(14);
+      doc.text(`Frequência de Músicos nos Ensaios de ${ano}`, 14, 15);
+
+      const headers = [];
+      const datasFormatadas = [];
+
+      // Cabeçalhos fixos
+      headers.push("Nome", "Instrumento");
+
+      // Datas de ensaio formatadas
+      const mesesAbreviados = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+      datasEnsaio.forEach(data => {
+        const mes = data.getMonth(); // 0 a 11
+        const ano = data.getFullYear();
+        const formatada = `${mesesAbreviados[mes]}`;
+        headers.push(formatada);
+        datasFormatadas.push(formatada);
+      })
+
+      headers.push("%");
+
+      const body = [];
+      const rows = document.querySelectorAll("#tabela tbody tr");
+
+      rows.forEach(row => {
+        const rowData = [];
+
+        rowData.push(row.dataset.nome);
+        rowData.push(row.dataset.instrumento);
+
+        let presencas = 0;
+        let totalMeses = 0;
+        
+        // Coleta os valores selecionados dos <select> de frequência
+        row.querySelectorAll("select").forEach(select => {
+          const valor = select.value;
+          rowData.push(valor);
+          totalMeses++;
+          if (valor === "P") presencas++;
+        });
+
+        // Calcula % de presença
+        const percentual = totalMeses > 0 ? ((presencas / totalMeses) * 100).toFixed(1) + "%" : "0%";
+        rowData.push(percentual);
+
+        body.push(rowData);
+      });
+
+      // Gerar a tabela no PDF
+      doc.autoTable({
+        head: [headers],
+        body: body,
+        startY: 25,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] },
+        theme: 'grid',
+        showHead: 'firstPage',
+        didDrawPage: function (data) {
+          if (data.pageNumber > 1) {
+            doc.setFontSize(10);
+            //doc.text(`Frequência - Continuação`, 14, 15);
+          }
+        }
+      });
+
+      doc.save(`frequencia_musicos_${ano}.pdf`);
+    }
 
     function exportarJSON() {
       const anoSelecionado = parseInt(document.getElementById("ano").value);
@@ -858,17 +1360,6 @@
       .catch(error => {
         mostrarMensagem("Erro ao salvar JSON: " + error.message, "error");
       });
-    
-
-/*
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `frequencia_musicos_${anoSelecionado}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      */
     }
 
     function mostrarMensagem(texto, tipo = "success") {
@@ -896,8 +1387,12 @@
         headers.push(data.toLocaleDateString("pt-BR"));
       });
 
+      headers.push("%");
+
       const data = [];
       const rows = document.querySelectorAll("#tabela tbody tr");
+
+
 
       rows.forEach(row => {
         const rowData = [];
@@ -905,10 +1400,20 @@
         rowData.push(row.dataset.instrumento);
         rowData.push(classificarFamilia(row.dataset.instrumento));
 
-        // Coleta os valores selecionados dos <select>
+        let presencas = 0;
+        let totalMeses = 0;
+        
+        // Coleta os valores selecionados dos <select> de frequência
         row.querySelectorAll("select").forEach(select => {
-          rowData.push(select.value);
+          const valor = select.value;
+          rowData.push(valor);
+          totalMeses++;
+          if (valor === "P") presencas++;
         });
+
+        // Calcula % de presença
+        const percentual = totalMeses > 0 ? ((presencas / totalMeses) * 100).toFixed(1) + "%" : "0%";
+        rowData.push(percentual);
 
         data.push(rowData);
       });
@@ -920,6 +1425,141 @@
 
       XLSX.writeFile(wb, "frequencia_musicos_"+ano+".xlsx");
     }
+
+    /* Final Function de Export */
+
+    let visitantes = {};
+
+    function adicionarVisitante() {
+      const select = document.getElementById("selectInstrumentoVisitante");
+      const instrumento = select.value;
+
+      if (!instrumento) return alert("Selecione um instrumento.");
+
+      if (visitantes[instrumento]) {
+        visitantes[instrumento]++;
+      } else {
+        visitantes[instrumento] = 1;
+      }
+
+      atualizarTabelaVisitantes();
+    }
+
+    function atualizarTabelaVisitantes() {
+      const tbody = document.querySelector("#tabelaVisitantes tbody");
+      tbody.innerHTML = "";
+
+      for (const instrumento in visitantes) {
+        const tr = document.createElement("tr");
+
+        const tdNome = document.createElement("td");
+        tdNome.textContent = instrumento;
+
+        const tdQtd = document.createElement("td");
+        tdQtd.textContent = visitantes[instrumento];
+
+        const tdAcoes = document.createElement("td");
+
+        const btnMenos = document.createElement("button");
+        btnMenos.textContent = "−";
+        btnMenos.id = "subInstrumento"
+        btnMenos.onclick = () => {
+          if (visitantes[instrumento] > 1) {
+            visitantes[instrumento]--;
+          } else {
+            delete visitantes[instrumento];
+          }
+          atualizarTabelaVisitantes();
+        };
+
+        const btnMais = document.createElement("button");
+        btnMais.textContent = "+";
+        btnMais.id = "sumInstrumento";
+        btnMais.onclick = () => {
+          visitantes[instrumento]++;
+          atualizarTabelaVisitantes();
+        };
+
+        tdAcoes.appendChild(btnMenos);
+        tdAcoes.appendChild(btnMais);
+
+        tr.appendChild(tdNome);
+        tr.appendChild(tdQtd);
+        tr.appendChild(tdAcoes);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    let dadosIrmaos = {
+      irmaos: 0,
+      irmas: 0
+    };
+
+    function alterarContador(tipo, delta) {
+      dadosIrmaos[tipo] = Math.max(0, (dadosIrmaos[tipo] || 0) + delta);
+      document.getElementById(`contador-${tipo}`).textContent = dadosIrmaos[tipo];
+    }
+
+    function adicionarLocalidade() {
+      const nomeInput = document.getElementById("nomeLocalidade");
+      const nome = nomeInput.value.trim();
+      if (nome === "") {
+        alert("Digite um nome.");
+        return;
+      }
+
+      const tbody = document.getElementById("tabelaLocalidade").querySelector("tbody");
+      const tr = document.createElement("tr");
+
+      const tdNome = document.createElement("td");
+      tdNome.textContent = nome;
+
+      const tdAcoes = document.createElement("td");
+      const btnRemover = document.createElement("button");
+      btnRemover.textContent = "🗑️";
+      btnRemover.onclick = () => tr.remove();
+      tdAcoes.appendChild(btnRemover);
+
+      tr.appendChild(tdNome);
+      tr.appendChild(tdAcoes);
+      tbody.appendChild(tr);
+
+      nomeInput.value = "";
+    }
+
+    function adicionarHino() {
+      const nomeInput = document.getElementById("numeroHino");
+      const nome = nomeInput.value.trim();
+      if (nome === "") {
+        alert("Digite um número de Hino.");
+        return;
+      }
+
+      const tbody = document.getElementById("tabelaHino").querySelector("tbody");
+      const tr = document.createElement("tr");
+
+      const tdNome = document.createElement("td");
+      tdNome.textContent = nome;
+
+      const tdAcoes = document.createElement("td");
+      const btnRemover = document.createElement("button");
+      btnRemover.textContent = "🗑️";
+      btnRemover.onclick = () => tr.remove();
+      tdAcoes.appendChild(btnRemover);
+
+      tr.appendChild(tdNome);
+      tr.appendChild(tdAcoes);
+      tbody.appendChild(tr);
+
+      nomeInput.value = "";
+    }
+
+    function fecharModalVisita() {
+      document.getElementById("modalVisitantes").style.display = "none";
+    }
+
+
 
     let mostrandoMesAtual = true;
 
