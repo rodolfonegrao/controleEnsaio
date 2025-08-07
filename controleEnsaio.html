@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>🎼 Controle de Frequência no Ensaio</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 20px;
+      background: #f4f8fc;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2e3d59;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .controls input, .controls select, .controls button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .controls button {
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+
+    .controls button:hover {
+      background-color: #0056b3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #e2e6ea;
+    }
+
+    #tabela td:first-child {
+      text-align: left;
+    }
+
+    .cordas { background-color: #fce4ec; }
+    .madeiras { background-color: #e3f2fd; }
+    .metais { background-color: #e8f5e9; }
+    .organistas { background-color: #fff3e0; }
+    .outros { background-color: #eeeeee; }
+
+    .btn-remove {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    .btn-remove:hover {
+      background-color: #a71d2a;
+    }
+
+    #modal {
+      display: none;
+      position: absolute;
+      z-index: 1000;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+    }
+
+    #modal-content {
+      background: white;
+      max-width: 600px;
+      margin: 100px auto;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    #modal-content h2 {
+      margin-top: 0;
+    }
+
+    #modal-content ul {
+      text-align: left;
+    }
+
+    #modal-content button {
+      margin-top: 15px;
+      padding: 6px 12px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #modal-content button:hover {
+      background-color: #0056b3;
+    }
+
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      padding-top: 60px;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: auto;
+      padding: 20px 30px;
+      border: 1px solid #888;
+      width: 300px;
+      border-radius: 10px;
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .modal-content label {
+      display: block;
+      margin: 10px 0 4px;
+    }
+
+    .modal-content input, .modal-content select {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 10px;
+    }
+
+    .modal-content .btn {
+      width: 100%;
+      padding: 8px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .modal-content .btn:hover {
+      background-color: #45a049;
+    }
+
+    .close {
+      float: right;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .toast {
+      position: fixed;
+      top: 30px;
+      right: 30px;
+      background-color: #27ae60;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.4s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+  </style>
+</head>
+<body>
+
+  <h1>🎻 Controle de Frequência nos Ensaios</h1>
+
+  <div id="mensagem" style="display:none; position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px 20px; border-radius: 5px; font-weight: bold;"></div>
+
+  <div class="controls">
+    <label for="ano">Ano:</label>
+    <select id="ano"></select>
+    <button onclick="gerarTabela()">📅 Gerar Tabela</button>
+
+    <button onclick="abrirModal('modalAdicionar')">➕ Adicionar Músico</button>
+    
+    <button onclick="importarJSON()">📥 Importar Músicos</button>
+
+    <button class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
+    <button onclick="contarFrequenciaMesAtual()">📅 Total Mês Atual</button>
+    <button onclick="contarFrequenciaAnual()">📆 Total no Ano</button>
+
+    <!--<button onclick="contarFrequencia()">📊 Contar Frequência</button>-->
+    <button onclick="limparLista()">🗑️ Limpar Lista</button>
+
+    <button onclick="exportarExcel()">📤 Exportar Excel</button>
+    
+    <button onclick="exportarJSON()">💾 Exportar Backup</button>
+
+    <button class="btn" onclick="alternarColunasMes()">Mostrar/Ocultar Meses</button>
+  </div>
+
+  <div id="modalAdicionar" class="modal controls">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModalManual()">&times;</span>
+      <h3>Adicionar Músico</h3>
+      <label for="nome">Nome:</label>
+      <input type="text" id="nome">
+      <label for="instrumento">Instrumento:</label>
+      <select id="instrumento">
+        <option value="">-- Selecione --</option>
+        <option>Violino</option><option>Viola</option><option>Cello</option>
+        <option>Flauta</option><option>Clarinete</option><option>Clarone Alto</option><option>Clarone Baixo</option>
+        <option>Oboé</option><option>Fagote</option><option>Saxofone Soprano</option>
+        <option>Saxofone Alto</option><option>Saxofone Tenor</option><option>Saxofone Baritono</option>
+        <option>Trompete</option><option>Trompa</option><option>Flugelhorn</option>
+        <option>Euphonium</option><option>Trombone</option><option>Tuba</option>
+        <option>Organistas</option>
+      </select>
+      <button onclick="adicionarManual(); fecharModalManual()">Adicionar</button>
+    </div>
+  </div>
+
+
+  <input type="file" id="file-input" accept=".json" style="display:none;" onchange="carregarJSON(event)">
+
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Instrumento</th>
+        <th>Família</th>
+        <!-- Colunas de meses -->
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <div id="modal">
+    <div id="modal-content">
+      <span class="close" onclick="fecharModal()">&times;</span>
+      <h2>Resumo de Frequência</h2>
+      <div id="resumo"></div>
+      <button onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+
+  <div id="mensagemSalvo" class="toast">
+    ✅ Salvo com sucesso!
+  </div>
+
+  <script>
+    function abrirModal(id) {
+      document.getElementById(id).style.display = "block";
+    }
+
+    function fecharModalManual() {
+      document.getElementById("modalAdicionar").style.display = "none";
+    }
+
+    function adicionarMusico() {
+      const nome = document.getElementById("nome").value.trim();
+      const instrumento = document.getElementById("instrumento").value;
+
+      if (!nome || !instrumento) {
+        alert("Preencha todos os campos.");
+        return;
+      }
+
+      // Adiciona novo músico ao array
+      musicos.push({ nome, instrumento });
+      salvarMusicos();
+      renderizarTabela();
+      document.getElementById("nome").value = "";
+      document.getElementById("instrumento").value = "";
+    }
+
+
+    const familias = {
+      Cordas: ["Violino", "Viola", "Cello"],
+      Madeiras: ["Flauta", "Oboé", "Fagote", "Clarinete", "Clarone Alto", "Clarone Baixo", "Saxofone Soprano", "Saxofone Alto", "Saxofone Tenor", "Saxofone Baritono"],
+      Metais: ["Trompete", "Flugelhorn", "Trompa", "Trombone", "Tuba", "Euphonium"],
+      Organistas: ["Organistas"]
+    };
+
+    let datasEnsaio = [];
+
+    function classificarFamilia(instr) {
+      for (const [familia, instrumentos] of Object.entries(familias)) {
+        if (instrumentos.map(i => i.toLowerCase()).includes(instr.toLowerCase())) {
+          return familia;
+        }
+      }
+      return "Outros";
+    }
+
+    function gerarTabela() {
+      const ano = parseInt(document.getElementById("ano").value);
+      const thead = document.querySelector("#tabela thead tr");
+      datasEnsaio = [];
+
+      while (thead.cells.length > 3) thead.deleteCell(-1);
+
+      for (let mes = 0; mes < 12; mes++) {
+        const d = new Date(ano, mes, 1);
+        let count = 0;
+        while (d.getDay() !== 6 || ++count < 2) d.setDate(d.getDate() + 1);
+        datasEnsaio.push(new Date(d));
+        const th = document.createElement("th");
+        th.textContent = d.toLocaleDateString("pt-BR");
+        thead.appendChild(th);
+      }
+
+      document.querySelectorAll("#tabela tbody tr").forEach(row => row.remove());
+      carregarDados();
+    }
+/*
+    function criarLinha(nome, instrumento) {
+      const tbody = document.querySelector("#tabela tbody");
+      const familia = classificarFamilia(instrumento);
+      const linha = tbody.insertRow();
+      linha.dataset.nome = nome;
+      linha.dataset.instrumento = instrumento;
+      linha.dataset.familia = familia;
+      linha.className = familia.toLowerCase();
+
+      linha.insertCell().textContent = nome;
+      linha.insertCell().textContent = instrumento;
+      linha.insertCell().textContent = familia;
+
+      datasEnsaio.forEach(() => {
+        const cell = linha.insertCell();
+        const select = document.createElement("select");
+        ["", "P", "F", "J", "E"].forEach(op => {
+          const option = document.createElement("option");
+          option.value = op;
+          option.textContent = op;
+          select.appendChild(option);
+        });
+        cell.appendChild(select);
+      });
+
+      const cellRemover = linha.insertCell();
+      const btn = document.createElement("button");
+      btn.textContent = "Remover";
+      btn.className = "btn-remove";
+      btn.onclick = () => {
+        linha.remove();
+        salvarDados();
+      };
+      cellRemover.appendChild(btn);
+    }*/
+
+    function criarLinha(nome, instrumento, frequencias = {}) {
+      const tbody = document.getElementById("tabela").querySelector("tbody");
+
+      // Verificar se já existe um músico com o mesmo nome
+      const nomesExistentes = Array.from(tbody.querySelectorAll("tr")).map(tr =>
+        tr.dataset.nome?.trim().toLowerCase()
+      );
+
+      if (nomesExistentes.includes(nome.trim().toLowerCase())) {
+        alert(`O nome "${nome}" já está na lista.`);
+        return;
+      }
+
+      const tr = document.createElement("tr");
+      tr.dataset.nome = nome;
+      tr.dataset.instrumento = instrumento;
+
+      const tdNome = document.createElement("td");
+      tdNome.textContent = nome;
+
+      const tdInstrumento = document.createElement("td");
+      tdInstrumento.textContent = instrumento;
+
+      const tdFamilia = document.createElement("td");
+      const familia = classificarFamilia(instrumento);
+      tdFamilia.textContent = familia;
+
+      tr.appendChild(tdNome);
+      tr.appendChild(tdInstrumento);
+      tr.appendChild(tdFamilia);
+
+      // Preencher os selects de frequência
+      datasEnsaio.forEach(data => {
+        const td = document.createElement("td");
+        const select = document.createElement("select");
+
+        ["F", "P", "J", "E"].forEach(status => {
+          const option = document.createElement("option");
+          option.value = status;
+          option.textContent = status;
+          select.appendChild(option);
+        });
+
+        const dataFormatada = data.toLocaleDateString("pt-BR");
+        if (frequencias[dataFormatada]) {
+          select.value = frequencias[dataFormatada];
+        }
+        select.onchange = salvarDados();
+
+        td.appendChild(select);
+        tr.appendChild(td);
+      });
+
+      tr.classList.add(familia.toLowerCase()); // aplica cor por família
+      tbody.appendChild(tr);
+
+      const tdRemover = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.textContent = "🗑️";
+      btn.className = "btn btn-remover";
+      btn.onclick = function () {
+        if (confirm(`Deseja remover ${nome} da lista?`)) {
+          tr.remove();
+          salvarDados();
+        }
+      };
+      tdRemover.appendChild(btn);
+      tr.appendChild(tdRemover);
+    }
+
+
+    function adicionarManual() {
+      const nome = document.getElementById("nome").value.trim();
+      const instrumento = document.getElementById("instrumento").value;
+      if (!nome ) {
+        alert("Por favor, preencha nome.");
+        return;
+      }
+      if (!instrumento) {
+        alert("Por favor, selecione um instrumento.");
+        return;
+      }
+      criarLinha(nome, instrumento);
+      salvarDados();
+      document.getElementById("nome").value = "";
+      document.getElementById("instrumento").value = "";
+    }
+
+    function importarJSON() {
+      document.getElementById("file-input").click();
+    }
+
+    function carregarJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+
+          if (!Array.isArray(data)) {
+            alert("Formato de arquivo inválido.");
+            return;
+          }
+
+          musicos = [];
+
+          data.forEach(item => {
+            if (item.nome && item.instrumento) {
+              musicos.push({ nome: item.nome, instrumento: item.instrumento });
+              criarLinha(item.nome, item.instrumento);
+            }
+          });
+
+          salvarDados(); // Atualiza localStorage
+          
+          // Após renderizar a tabela, aplicar frequências
+          setTimeout(() => {
+            const meses = datasEnsaio.map(data => data.toLocaleDateString("pt-BR"));
+
+            data.forEach(item => {
+              if (item.frequencias) {
+                const row = document.querySelector(
+                  `#tabela tbody tr[data-nome="${item.nome}"][data-instrumento="${item.instrumento}"]`
+                );
+
+                if (row) {
+                  const selects = row.querySelectorAll("select");
+                  meses.forEach((mes, i) => {
+                    if (item.frequencias[mes]) {
+                      selects[i].value = item.frequencias[mes];
+                    }
+                  });
+                }
+              }
+            });
+          }, 50); // Pequeno atraso para garantir que o DOM esteja pronto
+        } catch (err) {
+          alert("Erro ao carregar o arquivo.");
+          console.error(err);
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    function salvarDados() {
+      const dados = [];
+      const meses = datasEnsaio.map(data => data.toLocaleDateString("pt-BR"));
+      document.querySelectorAll("#tabela tbody tr").forEach(row => {
+
+        const selects = row.querySelectorAll("select");
+        const frequenciasList = {};
+
+        selects.forEach((select, i) => {
+          frequenciasList[meses[i]] = select.value;
+        });
+
+        dados.push({
+          nome: row.dataset.nome,
+          instrumento: row.dataset.instrumento,
+          frequencias: frequenciasList
+        });
+
+      });
+      mostrarMensagemSalvo();
+      localStorage.setItem("musicos", JSON.stringify(dados));
+    }
+
+    function mostrarMensagemSalvo() {
+      const msg = document.getElementById("mensagemSalvo");
+      msg.classList.add("show");
+
+      // Oculta após 2 segundos
+      setTimeout(() => {
+        msg.classList.remove("show");
+      }, 2000);
+    }
+
+    function iniciarSalvamentoAutomatico() {
+      setInterval(() => {
+        salvarDados();
+        mostrarMensagemSalvo(); // opcional: remove se quiser oculto
+      }, 30000); // 30.000 ms = 30 segundos
+    }
+
+
+    function carregarDados() {
+      const salvos = localStorage.getItem("musicos");
+      if (salvos) {
+        const lista = JSON.parse(salvos);
+        lista.forEach(item => criarLinha(item.nome, item.instrumento));
+      }
+    }
+
+    function limparLista() {
+      const confirmar = confirm("Tem certeza que deseja apagar toda a lista de músicos?");
+      if (!confirmar) return;
+
+      musicos = [];
+      localStorage.removeItem("musicos");
+      const tbody = document.getElementById("tabela").querySelector("tbody");
+      tbody.innerHTML = "";
+    }
+
+    function contarFrequencia() {
+      contarFrequenciaAnual();
+    }
+
+    function contarFrequenciaPorInstrumentoMesAtual() {
+      const instrumentosContagem = {};
+
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
+      const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
+
+      document.querySelectorAll("#tabela tbody tr").forEach(row => {
+        const instrumento = row.dataset.instrumento;
+        const selects = row.querySelectorAll("select");
+        if (selects.length > mesAtual) {
+          const valor = selects[mesAtual].value;
+          if (!instrumentosContagem[instrumento]) {
+            instrumentosContagem[instrumento] = { P: 0, F: 0, J: 0, E: 0 };
+          }
+          if (valor) {
+            instrumentosContagem[instrumento][valor] += 1;
+          }
+        }
+      });
+
+      mostrarResumoModal(instrumentosContagem, `Frequência - ${dataFormatada}`);
+    }
+
+    function mostrarResumoInstrumentoModal(resumo, titulo) {
+      let html = `
+        <table style="width:100%; text-align:center; border-collapse:collapse; overflow-y: auto;">
+          <thead>
+            <tr>
+              <th>Instrumento</th>
+              <th>Presente</th>
+              <th>Falta</th>
+              <th>Justificado</th>
+              <th>Enfermo</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      let total = { P: 0, F: 0, J: 0, E: 0 };
+      for (const [fam, contagem] of Object.entries(resumo)) {
+        html += `
+          <tr>
+            <td><strong>${fam}</strong></td>
+            <td>${contagem.P}</td>
+            <td>${contagem.F}</td>
+            <td>${contagem.J}</td>
+            <td>${contagem.E}</td>
+          </tr>
+        `;
+        total.P += contagem.P;
+        total.F += contagem.F;
+        total.J += contagem.J;
+        total.E += contagem.E;
+      }
+
+      html += `
+          <tr style="font-weight:bold; background:#f0f0f0;">
+            <td>Total Geral</td>
+            <td>${total.P}</td>
+            <td>${total.F}</td>
+            <td>${total.J}</td>
+            <td>${total.E}</td>
+          </tr>
+        </tbody>
+      </table>`;
+
+      document.querySelector("#modal-content h2").textContent = titulo;
+      document.getElementById("resumo").innerHTML = html;
+      document.getElementById("modal").style.display = "block";
+    }
+
+    function contarFrequenciaMesAtual() {
+      const resumo = {
+        Cordas: { P: 0, F: 0, J: 0, E: 0 },
+        Madeiras: { P: 0, F: 0, J: 0, E: 0 },
+        Metais: { P: 0, F: 0, J: 0, E: 0 },
+        Organistas: { P: 0, F: 0, J: 0, E: 0 },
+        Outros: { P: 0, F: 0, J: 0, E: 0 }
+      };
+
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+
+      document.querySelectorAll("#tabela tbody tr").forEach(row => {
+        const familia = classificarFamilia(row.dataset.instrumento);
+        const selects = row.querySelectorAll("select");
+        if (selects.length > mesAtual) {
+          const valor = selects[mesAtual].value;
+          if (resumo[familia][valor] !== undefined) {
+            resumo[familia][valor]++;
+          }
+        }
+      });
+
+      mostrarResumoModal(resumo, "Frequência - Mês Atual");
+    }
+
+    function contarFrequenciaAnual() {
+      const resumo = {
+        Cordas: { P: 0, F: 0, J: 0, E: 0 },
+        Madeiras: { P: 0, F: 0, J: 0, E: 0 },
+        Metais: { P: 0, F: 0, J: 0, E: 0 },
+        Organistas: { P: 0, F: 0, J: 0, E: 0 },
+        Outros: { P: 0, F: 0, J: 0, E: 0 }
+      };
+
+      document.querySelectorAll("#tabela tbody tr").forEach(row => {
+        const familia = classificarFamilia(row.dataset.instrumento);
+        row.querySelectorAll("select").forEach(select => {
+          const valor = select.value;
+          if (resumo[familia][valor] !== undefined) {
+            resumo[familia][valor]++;
+          }
+        });
+      });
+
+      mostrarResumoModal(resumo, "Frequência - Anual");
+    }
+
+    function mostrarResumoModal(resumo, titulo) {
+      let html = `
+        <table style="width:100%; text-align:center; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th>Família</th>
+              <th>Presente</th>
+              <th>Falta</th>
+              <th>Justificado</th>
+              <th>Enfermo</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      let total = { P: 0, F: 0, J: 0, E: 0 };
+      for (const [fam, contagem] of Object.entries(resumo)) {
+        html += `
+          <tr>
+            <td><strong>${fam}</strong></td>
+            <td>${contagem.P}</td>
+            <td>${contagem.F}</td>
+            <td>${contagem.J}</td>
+            <td>${contagem.E}</td>
+          </tr>
+        `;
+        total.P += contagem.P;
+        total.F += contagem.F;
+        total.J += contagem.J;
+        total.E += contagem.E;
+      }
+
+      html += `
+          <tr style="font-weight:bold; background:#f0f0f0;">
+            <td>Total Geral</td>
+            <td>${total.P}</td>
+            <td>${total.F}</td>
+            <td>${total.J}</td>
+            <td>${total.E}</td>
+          </tr>
+        </tbody>
+      </table>`;
+
+      document.querySelector("#modal-content h2").textContent = titulo;
+      document.getElementById("resumo").innerHTML = html;
+      document.getElementById("modal").style.display = "block";
+    }
+
+    function fecharModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    const anoSelect = document.getElementById("ano");
+    for (let a = 2025; a <= 2035; a++) {
+      const opt = document.createElement("option");
+      opt.value = a;
+      opt.textContent = a;
+      anoSelect.appendChild(opt);
+    }
+    anoSelect.value = new Date().getFullYear();
+    gerarTabela();
+
+    function exportarJSON() {
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const dataExportada = [];
+      const meses = datasEnsaio.map(data => data.toLocaleDateString("pt-BR"));
+
+      const rows = document.querySelectorAll("#tabela tbody tr");
+
+      rows.forEach(row => {
+        const nome = row.dataset.nome;
+        const instrumento = row.dataset.instrumento;
+        const familia = classificarFamilia(instrumento);
+
+        const selects = row.querySelectorAll("select");
+        const frequencias = {};
+
+        selects.forEach((select, i) => {
+          frequencias[meses[i]] = select.value;
+        });
+
+        dataExportada.push({
+          nome,
+          instrumento,
+          familia,
+          frequencias
+        });
+      });
+
+      const blob = new Blob([JSON.stringify(dataExportada, null, 2)], {
+        type: "application/json"
+      });
+
+      const url = "https://script.google.com/macros/s/AKfycbwkKqHGxzYwbDndV0sP6QDsAu72je5lt8pr3lswct95wApnK_a4oKF5sO2tzNmusS14mA/exec"; // substitua pela sua
+    
+      const payload = {
+        filename: `frequencia_musicos_${anoSelecionado}.json`,
+        content: JSON.stringify(blob)
+      };
+    
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(dataExportada)
+      })
+      .then(response => response.text())
+      .then(text => {
+        mostrarMensagem("Arquivo salvo com sucesso!", "success");
+      })
+      .catch(error => {
+        mostrarMensagem("Erro ao salvar JSON: " + error.message, "error");
+      });
+    
+
+/*
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `frequencia_musicos_${anoSelecionado}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      */
+    }
+
+    function mostrarMensagem(texto, tipo = "success") {
+      const div = document.getElementById("mensagem");
+      div.textContent = texto;
+      div.style.display = "block";
+      div.style.backgroundColor = tipo === "success" ? "#4CAF50" : "#f44336";
+      div.style.color = "white";
+      div.style.boxShadow = "0 0 5px rgba(0,0,0,0.3)";
+    
+      setTimeout(() => {
+        div.style.display = "none";
+      }, 4000);
+    }
+
+    function exportarExcel() {
+      const headers = [];
+      const ano = parseInt(document.getElementById("ano").value);
+
+      // Cabeçalhos fixos
+      headers.push("Nome", "Instrumento", "Família");
+
+      // Datas de ensaio (1 por mês)
+      datasEnsaio.forEach(data => {
+        headers.push(data.toLocaleDateString("pt-BR"));
+      });
+
+      const data = [];
+      const rows = document.querySelectorAll("#tabela tbody tr");
+
+      rows.forEach(row => {
+        const rowData = [];
+        rowData.push(row.dataset.nome);
+        rowData.push(row.dataset.instrumento);
+        rowData.push(classificarFamilia(row.dataset.instrumento));
+
+        // Coleta os valores selecionados dos <select>
+        row.querySelectorAll("select").forEach(select => {
+          rowData.push(select.value);
+        });
+
+        data.push(rowData);
+      });
+
+      const wsData = [headers, ...data];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Frequência");
+
+      XLSX.writeFile(wb, "frequencia_musicos_"+ano+".xlsx");
+    }
+
+    let mostrandoMesAtual = true;
+
+    function alternarColunasMes() {
+      const tabela = document.getElementById("tabela");
+      const headerCells = tabela.querySelectorAll("thead th");
+      const linhas = tabela.querySelectorAll("tbody tr");
+
+      // Obtém o índice da coluna do mês atual
+      const hoje = new Date();
+      const mesAtualIndex = datasEnsaio.findIndex(data => {
+        return (
+          data.getFullYear() === hoje.getFullYear() &&
+          data.getMonth() === hoje.getMonth()
+        );
+      });
+
+      if (mesAtualIndex === -1) {
+        alert("O mês atual não está entre os ensaios cadastrados.");
+        return;
+      }
+
+      // Começa após as 3 primeiras colunas: Nome, Instrumento, Família
+      const inicioColunasMeses = 3;
+
+      for (let i = 0; i < datasEnsaio.length; i++) {
+        const mostrar = !mostrandoMesAtual || i === mesAtualIndex;
+        
+        // Header
+        if (headerCells[inicioColunasMeses + i]) {
+          headerCells[inicioColunasMeses + i].style.display = mostrar ? "" : "none";
+        }
+
+        // Linhas
+        linhas.forEach(linha => {
+          const td = linha.children[inicioColunasMeses + i];
+          if (td) td.style.display = mostrar ? "" : "none";
+        });
+      }
+
+      mostrandoMesAtual = !mostrandoMesAtual;
+    }
+
+    window.onload = () => {
+      iniciarSalvamentoAutomatico(); // <- aqui
+    };
+  </script>
+</body>
+</html>
