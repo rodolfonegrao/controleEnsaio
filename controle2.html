@@ -213,6 +213,8 @@
 
   <h1>🎻 Controle de Frequência nos Ensaios</h1>
 
+  <div id="mensagem" style="display:none; position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px 20px; border-radius: 5px; font-weight: bold;"></div>
+
   <div class="controls">
     <label for="ano">Ano:</label>
     <select id="ano"></select>
@@ -770,6 +772,19 @@
       a.click();
       document.body.removeChild(a);
       */
+    }
+
+    function mostrarMensagem(texto, tipo = "success") {
+      const div = document.getElementById("mensagem");
+      div.textContent = texto;
+      div.style.display = "block";
+      div.style.backgroundColor = tipo === "success" ? "#4CAF50" : "#f44336";
+      div.style.color = "white";
+      div.style.boxShadow = "0 0 5px rgba(0,0,0,0.3)";
+    
+      setTimeout(() => {
+        div.style.display = "none";
+      }, 4000);
     }
 
     function exportarExcel() {
