@@ -601,39 +601,29 @@
     }
 
     function contarFrequenciaPorInstrumentoMesAtual() {
+      const instrumentosContagem = {};
+
       const anoSelecionado = parseInt(document.getElementById("ano").value);
       const hoje = new Date();
       const mesAtual = hoje.getMonth();
       const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
-
-      if (!segundoSabado) {
-        mostrarMensagem("Não há ensaio registrado para o mês atual.", "warning");
-        return;
-      }
-
       const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
 
-      const instrumentosContagem = {}; // { "Violino": {P: 0, A: 0, J: 0, E: 0}, ... }
-
-      const linhas = document.querySelectorAll("#tabela tbody tr");
-      linhas.forEach(linha => {
-        const instrumento = linha.getAttribute("data-instrumento") || "Desconhecido";
-        const selects = linha.querySelectorAll("select");
-        selects.forEach((select, index) => {
-          const cabecalho = document.querySelector(`#tabela thead th:nth-child(${index + 3})`);
-          if (cabecalho && cabecalho.textContent === dataFormatada) {
-            const valor = select.value;
-            if (!instrumentosContagem[instrumento]) {
-              instrumentosContagem[instrumento] = { P: 0, F: 0, J: 0, E: 0 };
-            }
-            if (valor) {
-              instrumentosContagem[instrumento][valor] += 1;
-            }
+      document.querySelectorAll("#tabela tbody tr").forEach(row => {
+        const instrumento = row.dataset.instrumento;
+        const selects = row.querySelectorAll("select");
+        if (selects.length > mesAtual) {
+          const valor = selects[mesAtual].value;
+          if (!instrumentosContagem[instrumento]) {
+            instrumentosContagem[instrumento] = { P: 0, F: 0, J: 0, E: 0 };
           }
-        });
+          if (valor) {
+            instrumentosContagem[instrumento][valor] += 1;
+          }
+        }
       });
 
-      mostrarResumoInstrumentoModal(instrumentosContagem, "Frequência - Mês Atual");
+      mostrarResumoModal(instrumentosContagem, `Frequência - ${dataFormatada}`);
     }
 
     function mostrarResumoInstrumentoModal(resumo, titulo) {
