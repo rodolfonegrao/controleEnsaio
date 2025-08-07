@@ -508,6 +508,24 @@
   </div>
 
   <script>
+    // Bloqueia F5 e Ctrl+R
+    document.addEventListener("keydown", function (e) {
+      if (
+        e.key === "F5" || // tecla F5
+        (e.ctrlKey && e.key.toLowerCase() === "r") || // Ctrl+R
+        (e.metaKey && e.key.toLowerCase() === "r") // Command+R (Mac)
+      ) {
+        e.preventDefault();
+        alert("Atualização da página está desativada.");
+      }
+    });
+
+    // Bloqueia refresh por outros motivos (como reload via menu ou botão navegador)
+    window.addEventListener("beforeunload", function (e) {
+      e.preventDefault();
+      e.returnValue = ""; // Necessário para alguns navegadores
+    });
+
     function abrirModal(id) {
       document.getElementById(id).style.display = "block";
     }
@@ -620,8 +638,7 @@
         if (frequencias[dataFormatada]) {
           select.value = frequencias[dataFormatada];
         }
-        select.onchange = salvarDados();
-
+        
         td.appendChild(select);
         tr.appendChild(td);
       });
@@ -636,6 +653,7 @@
       btn.onclick = function () {
         if (confirm(`Deseja remover ${nome} da lista?`)) {
           tr.remove();
+          exportarJSON();
           salvarDados();
         }
       };
@@ -656,9 +674,12 @@
         return;
       }
       criarLinha(nome, instrumento);
-      salvarDados();
+      
       document.getElementById("nome").value = "";
       document.getElementById("instrumento").value = "";
+
+      exportarJSON();
+      salvarDados();
     }
 
     function importarListaGoogleDrive() {
@@ -701,11 +722,9 @@
           data.forEach(item => {
             if (item.nome && item.instrumento) {
               musicos.push({ nome: item.nome, instrumento: item.instrumento });
-              criarLinha(item.nome, item.instrumento);
+              criarLinha(item.nome, item.instrumento, item.frequencias);
             }
           });
-
-          salvarDados(); // Atualiza localStorage
           
           // Após renderizar a tabela, aplicar frequências
           setTimeout(() => {
@@ -728,6 +747,8 @@
               }
             });
           }, 50); // Pequeno atraso para garantir que o DOM esteja pronto
+
+          salvarDados(); // Atualiza localStorage
         } catch (err) {
           alert("Erro ao carregar o arquivo.");
           console.error(err);
@@ -756,7 +777,7 @@
         });
 
       });
-      mostrarMensagemSalvo();
+      //mostrarMensagemSalvo();
       localStorage.setItem("musicos", JSON.stringify(dados));
     }
 
@@ -776,12 +797,11 @@
       }, 60000); // 30.000 ms = 30 segundos
     }
 
-
     function carregarDados() {
       const salvos = localStorage.getItem("musicos");
       if (salvos) {
         const lista = JSON.parse(salvos);
-        lista.forEach(item => criarLinha(item.nome, item.instrumento));
+        lista.forEach(item => criarLinha(item.nome, item.instrumento, item.frequencias));
       }
     }
 
@@ -1360,6 +1380,7 @@
       .catch(error => {
         mostrarMensagem("Erro ao salvar JSON: " + error.message, "error");
       });
+      salvarDados();
     }
 
     function mostrarMensagem(texto, tipo = "success") {
@@ -1559,8 +1580,6 @@
       document.getElementById("modalVisitantes").style.display = "none";
     }
 
-
-
     let mostrandoMesAtual = true;
 
     function alternarColunasMes() {
@@ -1609,7 +1628,7 @@
     }
 
     window.onload = () => {
-      iniciarSalvamentoAutomatico(); // <- aqui
+      iniciarSalvamentoAutomatico();
     };
   </script>
 </body>
