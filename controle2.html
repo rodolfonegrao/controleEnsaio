@@ -85,7 +85,7 @@
 
     #modal {
       display: none;
-      position: fixed;
+      position: absolute;
       z-index: 1000;
       top: 0; left: 0;
       width: 100%; height: 100%;
@@ -224,6 +224,7 @@
     
     <button onclick="importarJSON()">📥 Importar Músicos</button>
 
+    <button class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
     <button onclick="contarFrequenciaMesAtual()">📅 Total Mês Atual</button>
     <button onclick="contarFrequenciaAnual()">📆 Total no Ano</button>
 
@@ -597,6 +598,90 @@
 
     function contarFrequencia() {
       contarFrequenciaAnual();
+    }
+
+    function contarFrequenciaPorInstrumentoMesAtual() {
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
+
+      if (!segundoSabado) {
+        mostrarMensagem("Não há ensaio registrado para o mês atual.", "warning");
+        return;
+      }
+
+      const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
+
+      const instrumentosContagem = {}; // { "Violino": {P: 0, A: 0, J: 0, E: 0}, ... }
+
+      const linhas = document.querySelectorAll("#tabela tbody tr");
+      linhas.forEach(linha => {
+        const instrumento = linha.getAttribute("data-instrumento") || "Desconhecido";
+        const selects = linha.querySelectorAll("select");
+        selects.forEach((select, index) => {
+          const cabecalho = document.querySelector(`#tabela thead th:nth-child(${index + 3})`);
+          if (cabecalho && cabecalho.textContent === dataFormatada) {
+            const valor = select.value;
+            if (!instrumentosContagem[instrumento]) {
+              instrumentosContagem[instrumento] = { P: 0, F: 0, J: 0, E: 0 };
+            }
+            if (valor) {
+              instrumentosContagem[instrumento][valor] += 1;
+            }
+          }
+        });
+      });
+
+      mostrarResumoInstrumentoModal(instrumentosContagem, "Frequência - Mês Atual");
+    }
+
+    function mostrarResumoInstrumentoModal(resumo, titulo) {
+      let html = `
+        <table style="width:100%; text-align:center; border-collapse:collapse; overflow-y: auto;">
+          <thead>
+            <tr>
+              <th>Instrumento</th>
+              <th>Presente</th>
+              <th>Falta</th>
+              <th>Justificado</th>
+              <th>Enfermo</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      let total = { P: 0, F: 0, J: 0, E: 0 };
+      for (const [fam, contagem] of Object.entries(resumo)) {
+        html += `
+          <tr>
+            <td><strong>${fam}</strong></td>
+            <td>${contagem.P}</td>
+            <td>${contagem.F}</td>
+            <td>${contagem.J}</td>
+            <td>${contagem.E}</td>
+          </tr>
+        `;
+        total.P += contagem.P;
+        total.F += contagem.F;
+        total.J += contagem.J;
+        total.E += contagem.E;
+      }
+
+      html += `
+          <tr style="font-weight:bold; background:#f0f0f0;">
+            <td>Total Geral</td>
+            <td>${total.P}</td>
+            <td>${total.F}</td>
+            <td>${total.J}</td>
+            <td>${total.E}</td>
+          </tr>
+        </tbody>
+      </table>`;
+
+      document.querySelector("#modal-content h2").textContent = titulo;
+      document.getElementById("resumo").innerHTML = html;
+      document.getElementById("modal").style.display = "block";
     }
 
     function contarFrequenciaMesAtual() {
