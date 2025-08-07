@@ -772,16 +772,6 @@
       */
     }
 
-    function salvarJsonNoDrive(conteudoJson, nomeArquivo) {
-      const blob = Utilities.newBlob(JSON.stringify(conteudoJson), 'application/json', nomeArquivo + ".json");
-      const pasta = DriveApp.getRootFolder(); // ou use DriveApp.getFolderById('ID_DA_PASTA')
-      const arquivo = pasta.createFile(blob);
-      return arquivo.getUrl(); // retorna o link
-
-    }
-
-
-
     function exportarExcel() {
       const headers = [];
       const ano = parseInt(document.getElementById("ano").value);
