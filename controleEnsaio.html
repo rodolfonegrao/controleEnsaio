@@ -207,6 +207,10 @@
       transform: translateY(0);
     }
 
+    .oculto {
+      display: none !important;
+    }
+
   </style>
 </head>
 <body>
@@ -216,13 +220,15 @@
   <div id="mensagem" style="display:none; position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px 20px; border-radius: 5px; font-weight: bold;"></div>
 
   <div class="controls">
-    <label for="ano">Ano:</label>
-    <select id="ano"></select>
-    <button onclick="gerarTabela()">📅 Gerar Tabela</button>
+    
+    <label for="ano" class="oculto">Ano:</label>
+    <select id="ano" class="oculto"></select>
+    <button onclick="gerarTabela()" class="oculto">📅 Gerar Tabela</button>
+
 
     <button onclick="abrirModal('modalAdicionar')">➕ Adicionar Músico</button>
     
-    <button onclick="importarJSON()">📥 Importar Músicos</button>
+    <button onclick="importarListaGoogleDrive()">📥 Importar Músicos</button>
 
     <button class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
     <button onclick="contarFrequenciaMesAtual()">📅 Total Mês Atual</button>
@@ -235,7 +241,7 @@
     
     <button onclick="exportarJSON()">💾 Exportar Backup</button>
 
-    <button class="btn" onclick="alternarColunasMes()">Mostrar/Ocultar Meses</button>
+    <button id="btnAlternarMeses" class="btn" onclick="alternarColunasMes()">👁️ Apenas mês atual</button>
   </div>
 
   <div id="modalAdicionar" class="modal controls">
@@ -478,6 +484,23 @@
       document.getElementById("instrumento").value = "";
     }
 
+    function importarListaGoogleDrive() {
+      const url = "https://script.google.com/macros/s/AKfycbyGOT_Zib7x596O-jMTdq7Nzhl3mgV4ntGPRR8cFy-FEEXHt5wZ7v3MLJKwsPM2ceFqjw/exec";
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          data.forEach(musico => {
+            criarLinha(musico.nome, musico.instrumento, musico.frequencias);
+          });
+          salvarDados();
+          mostrarMensagem("Lista importada do Google Drive com sucesso!");
+        })
+        .catch(error => {
+          mostrarMensagem("Erro ao importar do Drive:", error);
+        });
+    }
+
     function importarJSON() {
       document.getElementById("file-input").click();
     }
@@ -573,8 +596,8 @@
     function iniciarSalvamentoAutomatico() {
       setInterval(() => {
         salvarDados();
-        mostrarMensagemSalvo(); // opcional: remove se quiser oculto
-      }, 30000); // 30.000 ms = 30 segundos
+        exportarJSON();
+      }, 60000); // 30.000 ms = 30 segundos
     }
 
 
@@ -815,10 +838,10 @@
         type: "application/json"
       });
 
-      const url = "https://script.google.com/macros/s/AKfycbwkKqHGxzYwbDndV0sP6QDsAu72je5lt8pr3lswct95wApnK_a4oKF5sO2tzNmusS14mA/exec"; // substitua pela sua
+      const url = "https://script.google.com/macros/s/AKfycbxayz9u9stke7ZM1O8SAPVH5DNZdZy68mXBxQF1olc94CawGVGr0uE9IlOJEstzZOjJ/exec"; // substitua pela sua
     
       const payload = {
-        filename: `frequencia_musicos_${anoSelecionado}.json`,
+        filename: "musicos.json",
         content: JSON.stringify(blob)
       };
     
@@ -936,6 +959,11 @@
           const td = linha.children[inicioColunasMeses + i];
           if (td) td.style.display = mostrar ? "" : "none";
         });
+
+        // Atualiza o texto do botão
+        const btn = document.getElementById("btnAlternarMeses");
+        btn.textContent = mostrar ? "👁️ Apenas mês atual" : "👁️ Todos os meses";
+
       }
 
       mostrandoMesAtual = !mostrandoMesAtual;
