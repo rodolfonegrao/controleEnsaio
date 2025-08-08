@@ -81,7 +81,7 @@
     .outros { background-color: #eeeeee; }
 
     .btn-remove {
-      background-color: #dc3545;
+      background-color: #dc3545 !important;
       color: white;
       border: none;
       border-radius: 4px;
@@ -90,7 +90,7 @@
     }
 
     .btn-remove:hover {
-      background-color: #a71d2a;
+      background-color: #a71d2a !important
     }
 
     #modal {
@@ -113,6 +113,10 @@
     }
 
     #modal-content h2 {
+      margin-top: 0;
+    }
+
+    #modal-content h3 {
       margin-top: 0;
     }
 
@@ -158,8 +162,14 @@
     }
 
     .modal-content h3 {
-      margin-top: 0;
+      margin-top: 1px;
+      margin-bottom: 5px;
       font-size: 20px;
+    }
+
+    .modal-content h4 {
+      margin-top: 1px;
+      margin-bottom: 1px;
     }
 
     .modal-content label {
@@ -170,7 +180,6 @@
     .modal-content input, .modal-content select {
       width: 100%;
       padding: 6px;
-      margin-bottom: 10px;
     }
 
     .modal-content .btn {
@@ -277,7 +286,6 @@
   <div id="mensagem" style="display:none; position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px 20px; border-radius: 5px; font-weight: bold;"></div>
 
   <div class="controls">
-    
     <label for="ano" class="oculto">Ano:</label>
     <select id="ano" class="oculto"></select>
     <button onclick="gerarTabela()" class="oculto">📅 Gerar Tabela</button>
@@ -308,7 +316,7 @@
       <input type="text" id="nome">
       <label for="instrumento">Instrumento:</label>
       <select id="instrumento">
-        <option value="">-- Selecione --</option>
+        <option value="">-- Instrumento --</option>
         <option>Violino</option><option>Viola</option><option>Cello</option>
         <option>Flauta</option><option>Clarinete</option><option>Clarone Alto</option><option>Clarone Baixo</option>
         <option>Oboé</option><option>Fagote</option><option>Saxofone Soprano</option>
@@ -325,7 +333,7 @@
     <div class="modal-content">
       <span class="close" onclick="fecharModalVisita()">&times;</span>
 
-      <h3>Irmandade</h3>
+      <h4>Irmandade</h4>
       <div class="grupo-contador">
         <label>Irmãos:</label>
         <button onclick="alterarContador('irmaos', -1)">−</button>
@@ -341,12 +349,12 @@
 
       <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
 
-      <h3>Músicos</h3>
+      <h4>Músicos</h4>
 
-      <div style="margin-bottom: 10px;">
-        <label for="selectInstrumentoVisitante">Instrumento:</label>
-        <select id="selectInstrumentoVisitante">
-          <option value="">-- Selecione --</option>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+        <!--<label for="selectInstrumentoVisitante">Instrumento:</label>-->
+        <select id="selectInstrumentoVisitante" style="flex: 1;">
+          <option value="">-- Instrumento --</option>
           <option>Violino</option><option>Viola</option><option>Cello</option>
           <option>Flauta</option><option>Clarinete</option><option>Clarone Alto</option><option>Clarone Baixo</option>
           <option>Oboé</option><option>Fagote</option><option>Saxofone Soprano</option>
@@ -372,7 +380,7 @@
 
       <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
 
-      <h3>Localidades</h3>
+      <h4>Localidades</h4>
       
       <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
         <input type="text" id="nomeLocalidade" placeholder="Localidade" style="flex: 1;">
@@ -393,7 +401,7 @@
 
       <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
 
-      <h3>Hinos Tocados</h3>
+      <h4>Hinos Tocados</h4>
       
       <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
         <input type="text" id="numeroHino" placeholder="Hino" style="flex: 1;">
@@ -435,7 +443,7 @@
   <div id="modal">
     <div id="modal-content">
       <span class="close" onclick="fecharModal()">&times;</span>
-      <h2>Resumo de Frequência</h2>
+      <h3>Resumo de Frequência</h3>
       <div id="resumo"></div>
       <button onclick="fecharModal()">Fechar</button>
     </div>
@@ -497,8 +505,8 @@
         <ul id="listaLocalidades"></ul>
       </div>
       <div class="controls">
-        <button onclick="exportarModalResumoComoJSON()">💾 Salvar</button>
-        <button onclick="enviarModalResumoPorWhatsApp()">📱 Enviar por WhatsApp</button>
+        <button onclick="exportarModalResumoComoJSON(); fecharModalResumo();">💾 Salvar</button>
+        <button onclick="enviarModalResumoPorWhatsApp(); fecharModalResumo();">📱 Enviar por WhatsApp</button>
       </div>
     </div>
   </div>
@@ -891,7 +899,7 @@
         </tbody>
       </table>`;
 
-      document.querySelector("#modal-content h2").textContent = titulo;
+      document.querySelector("#modal-content h3").textContent = titulo;
       document.getElementById("resumo").innerHTML = html;
       document.getElementById("modal").style.display = "block";
     }
@@ -987,7 +995,7 @@
         </tbody>
       </table>`;
 
-      document.querySelector("#modal-content h2").textContent = titulo;
+      document.querySelector("#modal-content h3").textContent = titulo;
       document.getElementById("resumo").innerHTML = html;
       document.getElementById("modal").style.display = "block";
     }
@@ -1035,13 +1043,6 @@
         mapaInstrumentos[instrumento] = mapaInstrumentos[instrumento] || { local: 0, visitas: 0 };
         mapaInstrumentos[instrumento].visitas += qtd;
       });
-      /*visitantes.forEach(row => {
-        const instrumento = row.getAttribute("data-instrumento");
-        const qtd = parseInt(row.getAttribute("data-quantidade") || "0");
-        if (!instrumento) return;
-        mapaInstrumentos[instrumento] = mapaInstrumentos[instrumento] || { local: 0, visitas: 0 };
-        mapaInstrumentos[instrumento].visitas += qtd;
-      });*/
 
       // --- 3. PREENCHER TABELA DE INSTRUMENTOS ---
       const tbody = document.querySelector("#resumoInstrumentos tbody");
@@ -1186,12 +1187,28 @@
 
       // Download JSON
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = nomeArquivo;
-      a.click();
-      URL.revokeObjectURL(url);
+
+      const url = "https://script.google.com/macros/s/AKfycbylSIUP-uWC8O5yrK_EgPzALj4JTPc48PFHRtvDZxcv0equ8U2ZrkvBpcV4i_yFWICL/exec"; 
+    
+      const payload = {
+        filename: "musicos.json",
+        content: JSON.stringify(blob)
+      };
+    
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.text())
+      .then(text => {
+        mostrarMensagem("Arquivo salvo com sucesso!", "success");
+      })
+      .catch(error => {
+        mostrarMensagem("Erro ao salvar JSON: " + error.message, "error");
+      });
     }
 
     function enviarModalResumoPorWhatsApp() {
@@ -1539,6 +1556,7 @@
       const tdAcoes = document.createElement("td");
       const btnRemover = document.createElement("button");
       btnRemover.textContent = "🗑️";
+      btnRemover.className = "btn-remove";
       btnRemover.onclick = () => tr.remove();
       tdAcoes.appendChild(btnRemover);
 
