@@ -8,6 +8,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- autoTable plugin -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 
   <style>
     body {
@@ -264,6 +266,10 @@
       display: none !important;
     }
 
+    .visivel {
+      display: flex !important;
+    }
+
     .tabela-resumo {
       width: 100%;
       border-collapse: collapse;
@@ -274,7 +280,6 @@
       padding: 5px 10px;
       text-align: left;
     }
-
 
   </style>
 </head>
@@ -297,6 +302,9 @@
     <button onclick="abrirModal('modalVisitantes')" class="btn">🎺 Visitas | Irmandade | Hinos</button>
 
     <button onclick="mostrarResumoCompleto()">🧾 Resumo do Ensaio</button>
+
+    <button onclick="importarResumoJsonGoogleDrive()">📊 Resumo do Google Drive</button>
+
     <button class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
     <button onclick="contarFrequenciaMesAtual()">📅 Total Mês Atual</button>
     <button onclick="contarFrequenciaAnual()">📊 Total no Ano</button>
@@ -325,7 +333,7 @@
         <option>Euphonium</option><option>Trombone</option><option>Tuba</option>
         <option>Organistas</option>
       </select>
-      <button onclick="adicionarManual(); fecharModalManual()">Adicionar</button>
+      <button style="margin-top: 10px" onclick="adicionarManual(); fecharModalManual()">Adicionar</button>
     </div>
   </div>
 
@@ -450,7 +458,7 @@
   </div>
 
   <div id="modalResumoCompleto" class="modal">
-    <div class="modal-content">
+    <div id="modalInternaResumo" class="modal-content">
       <span class="close" onclick="fecharModalResumo()">&times;</span>
       <h3>Resumo Completo do Ensaio</h3>
 
@@ -504,9 +512,10 @@
         <h4>Localidades Visitando</h4>
         <ul id="listaLocalidades"></ul>
       </div>
-      <div class="controls">
+      <div id="controlResumo" class="controls">
         <button onclick="exportarModalResumoComoJSON(); fecharModalResumo();">💾 Salvar</button>
         <button onclick="enviarModalResumoPorWhatsApp(); fecharModalResumo();">📱 Enviar por WhatsApp</button>
+        <button onclick="salvarPrintResumo()">📤 Print</button>
       </div>
     </div>
   </div>
@@ -649,10 +658,28 @@
         
         td.appendChild(select);
         tr.appendChild(td);
+
       });
 
       tr.classList.add(familia.toLowerCase()); // aplica cor por família
-      tbody.appendChild(tr);
+
+      // Encontrar a última linha com o mesmo instrumento
+      let ultimaPosicao = null;
+      const linhas = Array.from(tbody.querySelectorAll("tr"));
+      linhas.forEach((linha, index) => {
+          if (linha.dataset.instrumento === tr.dataset.instrumento) {
+              ultimaPosicao = index;
+          }
+      });
+
+      // Inserir logo abaixo do último músico com o mesmo instrumento
+      if (ultimaPosicao !== null) {
+          linhas[ultimaPosicao].after(tr);
+      } else {
+          tbody.appendChild(tr); // Se não existir, adiciona no final
+      }
+      
+      //tbody.appendChild(tr);
 
       const tdRemover = document.createElement("td");
       const btn = document.createElement("button");
@@ -667,8 +694,9 @@
       };
       tdRemover.appendChild(btn);
       tr.appendChild(tdRemover);
-    }
 
+      
+    }
 
     function adicionarManual() {
       const nome = document.getElementById("nome").value.trim();
@@ -681,6 +709,7 @@
         alert("Por favor, selecione um instrumento.");
         return;
       }
+      
       criarLinha(nome, instrumento);
       
       document.getElementById("nome").value = "";
@@ -822,6 +851,93 @@
       const tbody = document.getElementById("tabela").querySelector("tbody");
       tbody.innerHTML = "";
     }
+
+    function importarResumoJsonGoogleDrive() {
+      const url = "https://script.google.com/macros/s/AKfycbyxDR0Gy4u3khH8bqOR7AWKgx6VJecYKPmJDkh15MVxoJghRSEEI67I_zeNkeLdbt-I/exec";
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Erro na requisição: " + response.status);
+          }
+          return response.json();
+        })
+        .then(json => {
+          // Chama a função que vai montar o modal
+          carregarResumoDeJson(json);
+        })
+        .catch(error => {
+          mostrarMensagem("Erro ao importar resumo do Drive!");
+        });
+
+    }
+
+    function carregarResumoDeJson(dados) {
+      let html = `
+        <span class="close" onclick="fecharModalResumo()">&times;</span>
+        <h3>Resumo Completo do Ensaio</h3>
+
+        <h4>Instrumentos</h4>
+        <table border="1" style="border-collapse:collapse; width:100%;">
+            <tr>
+                <th>Instrumento</th>
+                <th>Local</th>
+                <th>Visitas</th>
+            </tr>
+            ${dados.instrumentos.map(inst => `
+                <tr>
+                    <td>${inst.instrumento}</td>
+                    <td style="text-align:center;">${inst.local}</td>
+                    <td style="text-align:center;">${inst.visitas}</td>
+                </tr>
+            `).join("")}
+            <tr>
+                <th>Total</th>
+                <th id="totalLocal" style="text-align:center;">${dados.totalInstrumentos.local}</th>
+                <th id="totalVisitas" style="text-align:center;">${dados.totalInstrumentos.visitas}</th>
+            </tr>
+        </table>
+
+        <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+        <h4>Contagem Geral</h4>
+        <table class="tabela-resumo">
+          <tbody>
+            <tr><td>Irmãs</td><td id="contagemIrmas">${dados.contagemGeral.irmas}</td></tr>
+            <tr><td>Irmãos</td><td id="contagemIrmaos">${dados.contagemGeral.irmaos}</td></tr>
+            <tr><td>Músicos</td><td id="contagemMusicos">${dados.contagemGeral.musicos}</td></tr>
+            <tr><th>Total</th><th id="contagemTotalGeral">${dados.contagemGeral.total}</th></tr>
+          </tbody>
+        </table>
+
+        <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+        <h4>Hinos Tocados</h4>
+        <table class="tabela-resumo">
+          <tbody>
+            <tr><td>Total</td><td id="totalHinos">${dados.hinosTocados.total}</td></tr>
+          </tbody>
+        </table>
+        <span id="listaHinosSpan">${dados.hinosTocados.lista.join(", ")}</span>
+
+        <hr style="border: none; height: 3px; background-color: #ccc; margin: 15px 0;">
+
+        <h4>Localidades Visitando</h4>
+        <ul id="listaLocalidades">${dados.localidadesVisitando.map(local => `<li>${local}</li>`).join("")}</ul>
+        
+        <div id="controlResumo" class="controls">
+          <button onclick="enviarModalResumoPorWhatsApp(); fecharModalResumo();">📱 Enviar por WhatsApp</button>
+          <button onclick="salvarPrintResumo()">📤 Print</button>
+        </div>
+      `;
+
+      // Exibir no modal (mesma estrutura do modalResumoCompleto)
+      const modal = document.getElementById("modalResumoCompleto");
+      const modalContent = modal.querySelector(".modal-content");
+      modalContent.innerHTML = html;
+
+      modal.style.display = "block";
+  }
 
 
     /* Inicio das Functions de Calculos */
@@ -1218,10 +1334,12 @@
       const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
       const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
 
-      let texto = `*Ensaio ${dataFormatada}*\n\n`;
+      let texto = `A Paz de Deus,\n\n`;
 
+      texto += `*Rudge Ramos Ensaio ${dataFormatada}*\n\n`;
+      
       // Instrumentos
-      texto += "*Instrumentos*\n";
+      texto += "*Músicos*\n";
       const linhasInstrumentos = document.querySelectorAll("#resumoInstrumentos tbody tr");
       linhasInstrumentos.forEach(row => {
         const cols = row.querySelectorAll("td");
@@ -1263,12 +1381,120 @@
         }
       });
 
+      //Encerramento
+      texto += "\nDeus abençoe grandemente a todos!";
+
       // Codifica o texto e cria o link do WhatsApp
       const textoCodificado = encodeURIComponent(texto);
       const linkWhatsapp = `https://wa.me/?text=${textoCodificado}`;
 
       // Abre o link em uma nova aba
       window.open(linkWhatsapp, "_blank");
+    }
+
+    function salvarPrintResumo() {
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
+      const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
+
+      const modal = document.getElementById("modalInternaResumo"); // ID da sua modal
+
+      if (!modal) {
+        alert("Modal não encontrada!");
+        return;
+      }
+
+
+      const button = document.getElementById("controlResumo");;
+      button.className = "oculto";
+
+      html2canvas(modal).then(canvas => {
+        // Converte para base64
+        const imgData = canvas.toDataURL("image/png");
+
+        // Cria link para baixar a imagem localmente (opcional)
+        const link = document.createElement("a");
+        link.href = imgData;
+        link.download = `resumo_ensaio_${dataFormatada}.png`;
+        link.click();
+/*
+        // Abre WhatsApp Web com mensagem padrão
+        const numero = "5511982725852"; // Coloque o número no formato internacional
+        const mensagem = encodeURIComponent("Segue o resumo do ensaio 📊 (imagem em anexo)");
+        const url = `https://wa.me/${numero}?text=${mensagem}`;
+        window.open(url, "_blank");
+*/
+
+/*
+        const url = "https://script.google.com/macros/s/AKfycbwjnlR2rr4fGpvpDaJ9EtADpVM6HDx_GQ_urQx6idDDP_vI7lDI7lZvuhYsLXB7MEey/exec";
+        const numeros = ["5511982725852", "5511988550176"];
+        const nomeArquivo = `resumo_ensaio_${dataFormatada}.png`;
+
+        // Envia a imagem para o Apps Script
+        fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ 
+              imagem: imgData}),
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            const linkImagem = data.url; // link público gerado pelo Apps Script
+            const mensagem = `Segue o resumo: ${linkImagem}`;
+
+            // Envia para cada número
+            numeros.forEach((numero, index) => {
+                setTimeout(() => {
+                    const urlWhatsApp = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+                    window.open(urlWhatsApp, "_blank");
+                }, index * 1500); // delay para evitar bloqueios
+            });
+        })
+        .catch(err => mostrarMensagem("Erro ao salvar Imagem: " + err, "error"));
+*/
+      });
+      button.className = "controls visivel";
+    }
+
+    function enviarPrintWhatsApp(numero) {
+      const modal = document.getElementById("modalResumoCompleto");
+
+      html2canvas(modal).then(canvas => {
+          const base64Image = canvas.toDataURL("image/png");
+
+          // Aqui você poderia enviar a imagem para o Google Apps Script e obter o link público
+          fetch("URL_DO_SEU_APPS_SCRIPT", {
+              method: "POST",
+              body: JSON.stringify({ imagem: base64Image }),
+              headers: { "Content-Type": "application/json" }
+          })
+          .then(res => res.json())
+          .then(data => {
+              const linkImagem = data.url; // Link público retornado pelo Apps Script
+              const mensagem = `Segue o resumo: ${linkImagem}`;
+              const urlWhatsApp = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+              window.open(urlWhatsApp, "_blank");
+          })
+          .catch(err => console.error("Erro ao enviar a imagem:", err));
+      });
+    }
+
+    function obterTamanhoDiv(id) {
+      const div = document.getElementById(id);
+
+      if (!div) {
+        console.error("Div não encontrada!");
+        return;
+      }
+
+      const tamanho = div.getBoundingClientRect();
+      
+      console.log("Largura:", tamanho.width, "px");
+      console.log("Altura:", tamanho.height, "px");
+      
+      return { largura: tamanho.width, altura: tamanho.height };
     }
 
     function exportarPDF() {
