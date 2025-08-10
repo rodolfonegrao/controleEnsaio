@@ -303,11 +303,11 @@
 
     <button onclick="mostrarResumoCompleto()">🧾 Resumo do Ensaio</button>
 
-    <button onclick="importarResumoJsonGoogleDrive()">📊 Resumo do Google Drive</button>
+    <button onclick="importarResumoJsonGoogleDrive()">📊 Recuperar Resumo</button>
 
-    <button class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
+    <button class="oculto" class="btn" onclick="contarFrequenciaPorInstrumentoMesAtual()">🎺 Total por Instrumento</button>
     <button onclick="contarFrequenciaMesAtual()">📅 Total Mês Atual</button>
-    <button onclick="contarFrequenciaAnual()">📊 Total no Ano</button>
+    <button class="oculto" onclick="contarFrequenciaAnual()">📊 Total no Ano</button>
 
     <button onclick="exportarExcel()">📈 Excel</button>
     <button onclick="exportarPDF()">📄 PDF</button>
@@ -453,7 +453,10 @@
       <span class="close" onclick="fecharModal()">&times;</span>
       <h3>Resumo de Frequência</h3>
       <div id="resumo"></div>
-      <button onclick="fecharModal()">Fechar</button>
+      <div id="controlResumo" class="controls">
+        <button onclick="salvarPrintResumoFamilia()">📤 Print</button>
+        <button onclick="fecharModal()">Fechar</button>
+      </div>
     </div>
   </div>
 
@@ -1418,6 +1421,71 @@
         const link = document.createElement("a");
         link.href = imgData;
         link.download = `resumo_ensaio_${dataFormatada}.png`;
+        link.click();
+/*
+        // Abre WhatsApp Web com mensagem padrão
+        const numero = "5511982725852"; // Coloque o número no formato internacional
+        const mensagem = encodeURIComponent("Segue o resumo do ensaio 📊 (imagem em anexo)");
+        const url = `https://wa.me/${numero}?text=${mensagem}`;
+        window.open(url, "_blank");
+*/
+
+/*
+        const url = "https://script.google.com/macros/s/AKfycbwjnlR2rr4fGpvpDaJ9EtADpVM6HDx_GQ_urQx6idDDP_vI7lDI7lZvuhYsLXB7MEey/exec";
+        const numeros = ["5511982725852", "5511988550176"];
+        const nomeArquivo = `resumo_ensaio_${dataFormatada}.png`;
+
+        // Envia a imagem para o Apps Script
+        fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ 
+              imagem: imgData}),
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            const linkImagem = data.url; // link público gerado pelo Apps Script
+            const mensagem = `Segue o resumo: ${linkImagem}`;
+
+            // Envia para cada número
+            numeros.forEach((numero, index) => {
+                setTimeout(() => {
+                    const urlWhatsApp = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+                    window.open(urlWhatsApp, "_blank");
+                }, index * 1500); // delay para evitar bloqueios
+            });
+        })
+        .catch(err => mostrarMensagem("Erro ao salvar Imagem: " + err, "error"));
+*/
+      });
+      button.className = "controls visivel";
+    }
+
+    function salvarPrintResumoFamilia() {
+      const anoSelecionado = parseInt(document.getElementById("ano").value);
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const segundoSabado = datasEnsaio.find(data => data.getMonth() === mesAtual && data.getFullYear() === anoSelecionado);
+      const dataFormatada = segundoSabado.toLocaleDateString("pt-BR");
+
+      const modal = document.getElementById("modal-content"); // ID da sua modal
+
+      if (!modal) {
+        alert("Modal não encontrada!");
+        return;
+      }
+
+      const button = document.getElementById("controlResumo");;
+      button.className = "oculto";
+
+      html2canvas(modal).then(canvas => {
+        // Converte para base64
+        const imgData = canvas.toDataURL("image/png");
+
+        // Cria link para baixar a imagem localmente (opcional)
+        const link = document.createElement("a");
+        link.href = imgData;
+        link.download = `resumo_familia_${dataFormatada}.png`;
         link.click();
 /*
         // Abre WhatsApp Web com mensagem padrão
