@@ -1595,6 +1595,10 @@
       const body = [];
       const rows = document.querySelectorAll("#tabela tbody tr");
 
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth() + 1; // getMonth() retorna de 0 (janeiro) a 11 (dezembro)
+      let contadorMes = 0;
+
       rows.forEach(row => {
         const rowData = [];
 
@@ -1606,10 +1610,22 @@
         
         // Coleta os valores selecionados dos <select> de frequência
         row.querySelectorAll("select").forEach(select => {
+          contadorMes += 1;
+          //alert(mesAtual + " - " + contadorMes)
+
           const valor = select.value;
-          rowData.push(valor);
+
+          if (contadorMes <= mesAtual) {
+            rowData.push(valor);
+          } else {
+            rowData.push("");
+          }
+
+          //rowData.push(valor);
           totalMeses++;
           if (valor === "P") presencas++;
+
+          if (contadorMes === 12) contadorMes = 0;
         });
 
         // Calcula % de presença
